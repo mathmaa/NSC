@@ -18,6 +18,9 @@ def f(x):
 	Output value
 	"""
 
-	
-	# TODO: Implement the algorithm 
+
+	# TODO: Implement the algorithm
+	# TODO: Git Commit commit
+	 
 	pass
+
