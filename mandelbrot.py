@@ -5,37 +5,46 @@ Course : Numerical Scientific computing
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import time, statistics
 
-def mandelbrot_point(c, max_iter=100):
-	z = 0
-	for n in range(max_iter):
-		z = z*z +c
-		if abs(z) > 2:
-			return n
-	return max_iter
+def benchmark(func, *args, runs=3):
+	times = []
+	for _ in range(runs):
+		start = time.perf_counter()
+		result = func(*args)
+		times.append(time.perf_counter() - start)
+	median_time = statistics.median(times)
+	print(f"Median: {median_time:.4f}s", f"(min={min(times):.4f}, max={max(times):.4f})")
+	return median_time, result
 
-def compute_mandelbrot_set(xmin=-2.0, xmax=1.0, 
-						   ymin=-1.5, ymax=1.5, 
-						   width=100, height=100, 
-						   max_iter=100):
-	xvalues = np.linspace(xmin, xmax, width)
-	yvalues = np.linspace(ymin, ymax, height)
+def create_complex_grid(xmin=-2.0, xmax=1.0, 
+						ymin=-1.5, ymax=1.5, 
+						width=1024, height=1024):
+	xvals=np.linspace(xmin, xmax, width)
+	yvals=np.linspace(ymin, ymax, height)
 
-	result = np.zeros((height, width), dtype=int)
-	for i in range(height):
-		for j in range(width):
-			c = complex(xvalues[j], yvalues[i])
-			result[i, j] = mandelbrot_point(c, max_iter)
+	X, Y = np.meshgrid(xvals, yvals)
 
-	return result
+	C = X + 1j * Y
+	return C
 
-start = time.time() 
-result = compute_mandelbrot_set(xmin=-2.0, xmax=1.0, 
-								ymin=-1.5, ymax=1.5, 
-								width=1024, height=1024)
-time_taken = time.time() - start
-print(f"Time taken to compute Mandelbrot set: {time_taken:.2f} seconds")
+def compute_mandelbrot_set(C, max_iter=100):
+	Z = np.zeros_like(C)
+	M = np.zeros(C.shape, dtype=int)
+	for _ in range(max_iter):
+		mask = np.abs(Z) <=2
+		Z[mask] = Z[mask]**2 + C[mask]
+		M[mask] += 1
+
+	return M
+
+xmin, xmax = -2.0, 1.0
+ymin, ymax = -1.5, 1.5
+width, height = 1024, 1024
+
+C = create_complex_grid(xmin, xmax, ymin, ymax, width, height)
+
+median_time, result = benchmark(compute_mandelbrot_set, C)
 
 plt.imshow(result, extent=(-2, 1, -1.5, 1.5), cmap='hot')
 plt.colorbar()
