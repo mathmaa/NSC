@@ -4,6 +4,7 @@ Author : Mathias
 Course : Numerical Scientific computing
 """
 import numpy as np
+import time
 
 def mandelbrot_point(c, max_iter=100):
 	z = 0
@@ -13,11 +14,10 @@ def mandelbrot_point(c, max_iter=100):
 			return n
 	return max_iter
 
-print(mandelbrot_point(complex(0, 0)))
-print(mandelbrot_point(complex(1, 1)))
-print(mandelbrot_point(complex(-2, 3)))  
-
-def compute_mandelbrot_set(xmin=-2.0, xmax=1.0, ymin=-1.5, ymax=1.5, width=100, height=100, max_iter=100):
+def compute_mandelbrot_set(xmin=-2.0, xmax=1.0, 
+						   ymin=-1.5, ymax=1.5, 
+						   width=100, height=100, 
+						   max_iter=100):
 	xvalues = np.linspace(xmin, xmax, width)
 	yvalues = np.linspace(ymin, ymax, height)
 
@@ -29,5 +29,9 @@ def compute_mandelbrot_set(xmin=-2.0, xmax=1.0, ymin=-1.5, ymax=1.5, width=100, 
 
 	return result
 
-grid = compute_mandelbrot_set(100, 100, max_iter=100)
-print(grid.shape)  # Should be (100, 100)
+start = time.time() 
+result = compute_mandelbrot_set(xmin=-2.0, xmax=1.0, 
+								ymin=-1.5, ymax=1.5, 
+								width=1024, height=1024)
+time_taken = time.time() - start
+print(f"Time taken to compute Mandelbrot set: {time_taken:.2f} seconds")
