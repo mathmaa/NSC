@@ -4,6 +4,7 @@ Author : Mathias
 Course : Numerical Scientific computing
 """
 import numpy as np
+from line_profiler import profile
 import time, statistics
 
 def benchmark(func, *args, runs=3):
@@ -15,6 +16,7 @@ def benchmark(func, *args, runs=3):
 	median_time = statistics.median(times)
 	print(f"Median: {median_time:.4f}s", f"(min={min(times):.4f}, max={max(times):.4f})")
 	return median_time, result
+
 
 def mandelbrot_numpy(xmin=-2.0, xmax=1.0, 
 					ymin=-1.5, ymax=1.5, 
