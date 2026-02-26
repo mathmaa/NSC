@@ -28,7 +28,7 @@ def create_complex_grid(xmin=-2.0, xmax=1.0,
 	C = X + 1j * Y
 	return C
 
-def compute_mandelbrot_set(C, max_iter=100):
+def compute_mandelbrot_set(C, max_iter=2000):
 	Z = np.zeros_like(C)
 	M = np.zeros(C.shape, dtype=int)
 	for _ in range(max_iter):
@@ -38,8 +38,8 @@ def compute_mandelbrot_set(C, max_iter=100):
 
 	return M
 
-xmin, xmax = -2.0, 1.0
-ymin, ymax = -1.5, 1.5
+xmin, xmax = -0.7487667139, -0.7487667078
+ymin, ymax = 0.1236408449, 0.1236408510
 width, height = 1024, 1024
 
 C = create_complex_grid(xmin, xmax, ymin, ymax, width, height)
