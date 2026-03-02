@@ -5,7 +5,6 @@ Course : Numerical Scientific computing
 """
 import numpy as np
 from numba import njit
-
 import time #, statistics
 
 # def benchmark(func, *args, runs=3):
@@ -109,4 +108,3 @@ def mandelbrot_numba_typed(xmin, xmax, ymin, ymax, width, height, max_iter=100, 
 				n += 1
 			result[i, j] = n
 	return result
-
