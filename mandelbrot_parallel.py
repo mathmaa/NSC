@@ -1,12 +1,9 @@
 import numpy as np
 from numba import njit
 from multiprocessing import Pool
-import time, os, statistics, matplotlib.pyplot as plt
-from pathlib import Path
-from PIL import Image
+import time, statistics
 
 from dask import delayed
-from dask.distributed import Client, LocalCluster
 
 
 @njit
@@ -140,21 +137,3 @@ def benchmark(N=1024, x_min=-2, x_max=1, y_min=-1.5, y_max=1.5, max_iter=100, wo
     results["parallel"] = times_parallel
     
     return results
-
-if __name__ == '__main__':
-    N, max_iter = 1024, 100
-    X_MIN, X_MAX, Y_MIN, Y_MAX = -2.5, 1.0, -1.25, 1.25
-    cluster = LocalCluster(n_workers=8, threads_per_worker=1)
-    client = Client(cluster)
-    client.run(lambda: mandelbrot_chunk(0, 8, 8, X_MIN, X_MAX, Y_MIN, Y_MAX, 10))
-    times = []
-    for _ in range(3):
-        t0 = time.perf_counter()
-        result = mandelbrot_dask(N, X_MIN, X_MAX, Y_MIN, Y_MAX, max_iter)
-        times.append(time.perf_counter() - t0)
-    print(f"Dask local (n_chunks=32): {statistics.median(times):.3f} s")
-    client.close(); cluster.close()
-    # results=benchmark(N=1024, 
-    #                  x_min=-2, x_max=1.0, 
-    #                  y_min=-1.5, y_max=1.5, 
-    #                  max_iter=256)
