@@ -5,6 +5,9 @@ import time, os, statistics, matplotlib.pyplot as plt
 from pathlib import Path
 from PIL import Image
 
+from dask import delayed
+from dask.distributed import Client, LocalCluster
+
 
 @njit
 def mandelbrot_pixel(c_real, c_imag, max_iter):
@@ -39,26 +42,60 @@ def mandelbrot_serial(N,
     return mandelbrot_chunk(0, N, N, x_min, x_max, y_min, y_max, max_iter)
 
 def _worker(args):
-    mandelbrot_chunk(*args)
+    return mandelbrot_chunk(*args)
 
 def mandelbrot_parallel(N, 
                         x_min, x_max, 
                         y_min, y_max, 
-                        max_iter=100, 
-                        n_workers=1):
-    chunks = []
-    n_per_worker= N // n_workers
-    for i in range(n_workers):
-        row_start = i * n_per_worker
-        row_end = N if i == n_workers - 1 else row_start + n_per_worker
-        chunks.append((row_start, row_end, N, x_min, x_max, y_min, y_max, max_iter))
+                        max_iter=100,
+                        n_workers=1,
+                        n_chunks=None,
+                        pool=None):
+    if n_chunks is None:
+        n_chunks = n_workers
 
-    with Pool(processes=n_workers) as pool: 
-        out = pool.starmap(mandelbrot_chunk, chunks)
+    chunk_size = max(1, N // n_chunks)
+    chunks, row = [], 0
 
-
-    return np.vstack(out)
+    while row < N:
+        row_end = min(row + chunk_size, N)
+        chunks.append((row, row_end, N, x_min, x_max, y_min, y_max, max_iter))
+        row = row_end
         
+    if pool is not None:
+        return np.vstack(pool.map(_worker, chunks))
+    tiny = [(0,8,8,x_min,x_max,y_min,y_max,max_iter)]
+
+    with Pool(processes=n_workers) as p: 
+        p.map(_worker, tiny)
+        parts = p.map(_worker, chunks)
+
+    return np.vstack(parts)
+
+
+def mandelbrot_dask(N, 
+                    x_min, x_max, 
+                    y_min, y_max, 
+                    max_iter=100,
+                    n_chunks=32):
+    chunk_size = max(1, N // n_chunks)
+    tasks = []
+
+    for row_start in range(0, N, chunk_size):
+        row_end = min(row_start + chunk_size, N)
+
+        task = delayed(mandelbrot_chunk)(
+            row_start, row_end, 
+            N,
+            x_min, x_max, 
+            y_min, y_max,
+            max_iter
+        )
+        tasks.append(task)
+
+    results = delayed(np.vstack)(tasks)
+    return results.compute()
+
 def benchmark(N=1024, x_min=-2, x_max=1, y_min=-1.5, y_max=1.5, max_iter=100, worker_counts=None, runs=3):
     if worker_counts== None:
         worker_counts=[1,2,4,8]
@@ -105,24 +142,19 @@ def benchmark(N=1024, x_min=-2, x_max=1, y_min=-1.5, y_max=1.5, max_iter=100, wo
     return results
 
 if __name__ == '__main__':
-    result=mandelbrot_parallel(4096, x_min=-2, x_max=1.0, y_min=-1.5, y_max=1.5, max_iter=512, n_workers=8)
-
-    normalized = (result / result.max() * 255).astype(np.uint8)
-    colored = plt.cm.inferno(normalized, bytes=True)   # returns RGBA uint8 array
-
-    img = Image.fromarray(colored, mode="RGBA")
-    out = Path(__file__).parent / 'mandelbrot.png'
-    img.save(out)
-    # fig, ax = plt.subplots(figsize=(8,6))
-    # ax.imshow(result, extent=[-2,1,-1.5,1.5], cmap='inferno', origin='lower', aspect='equal')
-    # ax.set_xlabel('Re(c)')
-    # ax.set_ylabel('Im(c)')
-    # out = Path(__file__).parent / 'mandelbrot.png'
-    # fig.savefig(out, dpi=150)
-
-    # results = benchmark(
-    #     N=2048, 
-    #     max_iter=256, 
-    #     worker_counts=[1,2,4,8])
-
-    # print(results)
+    N, max_iter = 1024, 100
+    X_MIN, X_MAX, Y_MIN, Y_MAX = -2.5, 1.0, -1.25, 1.25
+    cluster = LocalCluster(n_workers=8, threads_per_worker=1)
+    client = Client(cluster)
+    client.run(lambda: mandelbrot_chunk(0, 8, 8, X_MIN, X_MAX, Y_MIN, Y_MAX, 10))
+    times = []
+    for _ in range(3):
+        t0 = time.perf_counter()
+        result = mandelbrot_dask(N, X_MIN, X_MAX, Y_MIN, Y_MAX, max_iter)
+        times.append(time.perf_counter() - t0)
+    print(f"Dask local (n_chunks=32): {statistics.median(times):.3f} s")
+    client.close(); cluster.close()
+    # results=benchmark(N=1024, 
+    #                  x_min=-2, x_max=1.0, 
+    #                  y_min=-1.5, y_max=1.5, 
+    #                  max_iter=256)
