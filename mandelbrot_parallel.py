@@ -1,7 +1,8 @@
 import numpy as np
 from numba import njit
 from multiprocessing import Pool
-import time, statistics
+import time
+import statistics
 
 from dask import delayed
 
@@ -12,7 +13,8 @@ def mandelbrot_pixel(c_real, c_imag, max_iter):
     for i in range(max_iter):
         zr2 = z_real * z_real
         zi2 = z_imag * z_imag
-        if zr2 + zi2 > 4.0: return i
+        if zr2 + zi2 > 4.0: 
+            return i
         z_imag = 2.0 * z_real * z_imag + c_imag
         z_real = zr2 - zi2 + c_real
     return max_iter
@@ -30,6 +32,7 @@ def mandelbrot_chunk(row_start, row_end,
         c_imag = y_min + (r + row_start) * dy
         for col in range(N):
             out[r,col] = mandelbrot_pixel(x_min + col * dx, c_imag, max_iter)
+            
     return out
 
 def mandelbrot_serial(N, 
@@ -94,7 +97,7 @@ def mandelbrot_dask(N,
     return results.compute()
 
 def benchmark(N=1024, x_min=-2, x_max=1, y_min=-1.5, y_max=1.5, max_iter=100, worker_counts=None, runs=3):
-    if worker_counts== None:
+    if worker_counts is None:
         worker_counts=[1,2,4,8]
     
     print("Warming up numba...")
@@ -131,7 +134,7 @@ def benchmark(N=1024, x_min=-2, x_max=1, y_min=-1.5, y_max=1.5, max_iter=100, wo
         median_time = statistics.median(times)
 
         times_parallel[n] = median_time
-        speedup = results["serial"] / median_time
+
         print(f"Median paralell_{n}: {median_time:.4f}s", f"(min={min(times):.4f}, max={max(times):.4f})")
 
     results["parallel"] = times_parallel

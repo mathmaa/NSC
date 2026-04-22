@@ -5,7 +5,6 @@ Course : Numerical Scientific computing
 """
 import numpy as np
 from numba import njit
-import time #, statistics
 
 # def benchmark(func, *args, runs=3):
 # 	times = []
