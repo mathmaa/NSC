@@ -6,20 +6,28 @@ Course : Numerical Scientific computing
 import numpy as np
 from numba import njit
 
-# def benchmark(func, *args, runs=3):
-# 	times = []
-# 	for _ in range(runs):
-# 		start = time.perf_counter()
-# 		result = func(*args)
-# 		times.append(time.perf_counter() - start)
-# 	median_time = statistics.median(times)
-# 	print(f"Median: {median_time:.4f}s", f"(min={min(times):.4f}, max={max(times):.4f})")
-# 	return median_time, result
+def mandelbrot_naive(
+	xmin: float=-2.0, xmax: float=1.0,
+	ymin: float=-1.5, ymax: float=1.5,
+	width: int=1024, height: int=1024,
+	max_iter: int=100
+) -> list[list[int]]:
+	"""
+	Compute a Mandelbrot set grid using a naive nested-loop approach.
 
-def mandelbrot_naive(xmin=-2.0, xmax=1.0,
-					 ymin=-1.5, ymax=1.5,
-					 width=1024, height=1024,
-					 max_iter=100):
+	Parameters:
+		xmin, xmax : float
+			Range of the real axis.
+		ymin, ymax : float
+			Range of the imaginary axis.
+		width, height : int
+			Resolution of the output grid.
+		max_iter : int
+			Maximum number of iterations.
+
+	Returns:
+		list[list[int]]: 2D grid of iteration counts.
+	"""
 	M = []
 	for j in range(height):
 		row = []
@@ -37,10 +45,32 @@ def mandelbrot_naive(xmin=-2.0, xmax=1.0,
 	return M
 
 
-def mandelbrot_numpy(xmin=-2.0, xmax=1.0,
-					 ymin=-1.5, ymax=1.5,
-					 width=1024, height=1024,
-					 max_iter=100):
+def mandelbrot_numpy(
+	xmin: float=-2.0, xmax: float=1.0,
+	ymin: float=-1.5, ymax: float=1.5,
+	width: int=1024, height: int=1024,
+	max_iter: int=100
+) -> np.ndarray:
+	"""
+	Compute the Mandelbrot set using a vectorized NumPy implementation.
+
+	This function evaluates the escape-time algorithm over a grid in the
+	complex plane using array operations instead of explicit Python loops.
+
+	Parameters:
+		xmin, xmax : float
+			Range of the real axis.
+		ymin, ymax : float
+			Range of the imaginary axis.
+		width, height : int
+			Resolution of the output grid.
+		max_iter : int
+			Maximum number of iterations.
+
+	Returns:
+		np.ndarray:
+			2D array (height × width) of iteration counts.
+	"""
 	xvals = np.linspace(xmin, xmax, width)
 	yvals = np.linspace(ymin, ymax, height)
 	X, Y = np.meshgrid(xvals, yvals)
@@ -56,7 +86,24 @@ def mandelbrot_numpy(xmin=-2.0, xmax=1.0,
 	return M
 
 @njit
-def mandelbrot_point_numba(c, max_iter=100):
+def mandelbrot_point_numba(
+	c: complex, max_iter: int=100
+) -> int:
+	"""
+	Compute the escape iteration count for a single complex point
+	using a Numba-accelerated implementation.
+
+	Parameters:
+		c : complex
+			Complex number representing a point in the plane.
+		max_iter : int
+			Maximum number of iterations.
+
+	Returns:
+		int:
+			Number of iterations before divergence, or max_iter if the
+			point does not escape.
+	"""
 	z = 0j
 	for n in range(max_iter):
 		if z.real*z.real + z.imag*z.imag > 4.0:
@@ -64,8 +111,33 @@ def mandelbrot_point_numba(c, max_iter=100):
 		z = z*z + c
 	return max_iter
 
-def mandelbrot_hybrid(xmin, xmax, ymin, ymax, width, height, max_iter=100):
-	# outer loops still in Python
+def mandelbrot_hybrid(
+	xmin: float, xmax: float,
+	ymin: float, ymax: float,
+	width: int, height: int,
+	max_iter: int = 100
+) -> np.ndarray:
+	"""
+	Compute the Mandelbrot set using a hybrid approach:
+	Python loops with a Numba-accelerated point function.
+
+	The grid is generated using NumPy, while each point is evaluated
+	via `mandelbrot_point_numba`, which is JIT-compiled.
+
+	Parameters:
+		xmin, xmax : float
+			Range of the real axis.
+		ymin, ymax : float
+			Range of the imaginary axis.
+		width, height : int
+			Resolution of the output grid.
+		max_iter : int
+			Maximum number of iterations.
+
+	Returns:
+		np.ndarray:
+			2D array (height × width) of iteration counts.
+	"""
 	x = np.linspace(xmin, xmax, width)
 	y = np.linspace(ymin, ymax, height)
 	result = np.zeros((height, width), dtype=np.int32)
@@ -75,9 +147,35 @@ def mandelbrot_hybrid(xmin, xmax, ymin, ymax, width, height, max_iter=100):
 			result[i, j] = mandelbrot_point_numba(c, max_iter)
 	return result
 
+
 @njit
-def mandelbrot_naive_numba(xmin, xmax, ymin, ymax, width, height, max_iter=100):
-	"""Fully JIT-compiled Mandelbrot --- structure identical to naive."""
+def mandelbrot_naive_numba(
+	xmin: float, xmax: float,
+	ymin: float, ymax: float,
+	width: int = 1024, height: int = 1024,
+	max_iter: int = 100
+) -> np.ndarray:
+	"""
+	Compute the Mandelbrot set using a fully Numba JIT-compiled implementation.
+
+	This version mirrors the naive nested-loop algorithm but is entirely
+	compiled with Numba, including grid generation and iteration logic.
+
+	Parameters:
+		xmin, xmax : float
+			Range of the real axis.
+		ymin, ymax : float
+			Range of the imaginary axis.
+		width, height : int
+			Resolution of the output grid.
+		max_iter : int
+			Maximum number of iterations.
+
+	Returns:
+		np.ndarray:
+			2D array (height × width) of iteration counts.
+	"""
+	
 	x = np.linspace(xmin, xmax, width)
 	y = np.linspace(ymin, ymax, height)
 	result = np.zeros((height, width), dtype=np.int32)
@@ -93,7 +191,32 @@ def mandelbrot_naive_numba(xmin, xmax, ymin, ymax, width, height, max_iter=100):
 	return result
 
 @njit
-def mandelbrot_numba_typed(xmin, xmax, ymin, ymax, width, height, max_iter=100, dtype=np.float64):
+def mandelbrot_numba_typed(
+	xmin: float, xmax: float,
+	ymin: float, ymax: float,
+	width: int, height: int,
+	max_iter: int = 100,
+	dtype: np.dtype = np.float64
+) -> np.ndarray:
+	"""
+	Compute the Mandelbrot set using a fully JIT-compiled Numba implementation
+	with configurable floating-point precision.
+
+	Parameters:
+		xmin, xmax : float
+		ymin, ymax : float
+			Bounds of the complex plane.
+		width, height : int
+			Grid resolution.
+		max_iter : int
+			Maximum number of iterations.
+		dtype : numpy dtype
+			Floating-point precision for computations (e.g., np.float64).
+
+	Returns:
+		np.ndarray:
+			2D array of iteration counts (height × width).
+	"""
 	x = np.linspace(xmin, xmax, width).astype(dtype)
 	y = np.linspace(ymin, ymax, height).astype(dtype)
 	result = np.zeros((height, width), dtype=np.int32)
