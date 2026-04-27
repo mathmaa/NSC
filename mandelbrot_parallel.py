@@ -26,8 +26,8 @@ def mandelbrot_chunk(row_start, row_end,
                      y_min, y_max, 
                      max_iter):
     out = np.empty((row_end - row_start, N), dtype=np.int32)
-    dx = (x_max - x_min) / N
-    dy = (y_max - y_min) / N 
+    dx = (x_max - x_min) / (N - 1)
+    dy = (y_max - y_min) / (N - 1) 
     for r in range(row_end - row_start):
         c_imag = y_min + (r + row_start) * dy
         for col in range(N):
