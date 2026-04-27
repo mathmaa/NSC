@@ -44,7 +44,6 @@ def mandelbrot_naive(
 		M.append(row)
 	return M
 
-
 def mandelbrot_numpy(
 	xmin: float=-2.0, xmax: float=1.0,
 	ymin: float=-1.5, ymax: float=1.5,
@@ -146,7 +145,6 @@ def mandelbrot_hybrid(
 			c = x[j] + 1j * y[i]
 			result[i, j] = mandelbrot_point_numba(c, max_iter)
 	return result
-
 
 @njit
 def mandelbrot_naive_numba(
